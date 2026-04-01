@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Hase und Maus beim Picknick unter dem Baum – mit Berliner Wettervorhersage.">
+  <title>Picknick unter dem Baum 🌳</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 22px 16px 36px;
+      transition: background 1.5s ease;
+    }
+
+    body.weather-summer {
+      background: linear-gradient(160deg, #3d8ec8 0%, #87ceeb 50%, #6ab848 100%);
+    }
+    body.weather-rain {
+      background: linear-gradient(160deg, #3a4e60 0%, #607a8e 50%, #4a7040 100%);
+    }
+    body.weather-winter {
+      background: linear-gradient(160deg, #9eb4c8 0%, #c8dcea 50%, #b8ccd4 100%);
+    }
+
+    .page-title {
+      font-size: clamp(1.3rem, 4vw, 2rem);
+      color: white;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.28);
+      margin-bottom: 14px;
+      text-align: center;
+      letter-spacing: 0.03em;
+    }
+
+    .weather-card {
+      background: rgba(255,255,255,0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 20px;
+      padding: 10px 28px 14px;
+      margin-bottom: 18px;
+      text-align: center;
+      box-shadow: 0 4px 22px rgba(0,0,0,0.14);
+      min-width: 190px;
+    }
+    .weather-card .wc-icon { font-size: 2.6rem; line-height: 1.1; }
+    .weather-card .wc-temp { font-size: 1.65rem; font-weight: 700; color: #2a2a2a; }
+    .weather-card .wc-desc { font-size: 0.9rem; color: #555; margin-top: 2px; }
+
+    .scene-wrap {
+      width: 100%;
+      max-width: 780px;
+      filter: drop-shadow(0 8px 22px rgba(0,0,0,0.2));
+    }
+    .scene-wrap svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .greetings {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 18px;
+      max-width: 720px;
+      width: 100%;
+    }
+    .bubble {
+      background: rgba(255,255,255,0.93);
+      border-radius: 22px;
+      padding: 13px 20px;
+      max-width: 315px;
+      font-size: 1rem;
+      line-height: 1.55;
+      text-align: center;
+      box-shadow: 0 3px 16px rgba(0,0,0,0.13);
+      color: #333;
+      opacity: 0;
+      animation: pop-in 0.55s ease-out forwards;
+    }
+    .bubble.rabbit-says { animation-delay: 0.7s; }
+    .bubble.mouse-says  { animation-delay: 1.8s; }
+
+    @keyframes pop-in {
+      0%   { opacity: 0; transform: scale(0.82) translateY(14px); }
+      65%  { opacity: 1; transform: scale(1.05) translateY(-3px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    /* ── Weather-dependent SVG element visibility ── */
+    .sky-el { display: none; }
+    body.weather-summer .sky-el.summer { display: block; }
+    body.weather-rain   .sky-el.rain   { display: block; }
+    body.weather-winter .sky-el.winter { display: block; }
+
+    /* Characters: all outfit variants hidden by default */
+    .fit-summer, .fit-rain, .fit-winter { display: none; }
+    body.weather-summer .fit-summer { display: block; }
+    body.weather-rain   .fit-rain   { display: block; }
+    body.weather-winter .fit-winter { display: block; }
+
+    /* ── Animations ── */
+    @keyframes rain-fall {
+      from { transform: translateY(-60px); opacity: 0.85; }
+      to   { transform: translateY(260px); opacity: 0.2;  }
+    }
+    .rain-a { animation: rain-fall 1.35s linear infinite; }
+    .rain-b { animation: rain-fall 1.35s linear infinite -0.67s; }
+    .rain-c { animation: rain-fall 1.35s linear infinite -1.05s; }
+
+    @keyframes snow-fall {
+      from { transform: translate(0, -80px) rotate(0deg);   opacity: 0.9; }
+      to   { transform: translate(20px, 270px) rotate(540deg); opacity: 0.15; }
+    }
+    .snow-a { animation: snow-fall 3.4s ease-in infinite; }
+    .snow-b { animation: snow-fall 3.4s ease-in infinite -1.7s; }
+  </style>
+</head>
+
+<body class="weather-summer">
+
+  <h1 class="page-title">🌳 Picknick unter dem Baum</h1>
+
+  <div class="weather-card">
+    <div class="wc-icon" id="wc-icon">🌤️</div>
+    <div class="wc-temp" id="wc-temp">– °C</div>
+    <div class="wc-desc" id="wc-desc">Wetter wird geladen…</div>
+  </div>
+
+  <div class="scene-wrap">
+    <svg viewBox="0 0 800 510" xmlns="http://www.w3.org/2000/svg"
+         role="img" aria-label="Hase und Maus beim Picknick unter einem Baum">
+      <title>Hase und Maus beim Picknick</title>
+      <desc>Ein Hase und eine Maus sitzen unter einem Baum und machen ein Picknick.</desc>
+
+      <defs>
+        <!-- Checkered picnic-blanket pattern -->
+        <pattern id="checker" x="0" y="0" width="44" height="44" patternUnits="userSpaceOnUse">
+          <rect width="44" height="44" fill="#D42828"/>
+          <rect x="0"  y="0"  width="22" height="22" fill="#F2EDEC"/>
+          <rect x="22" y="22" width="22" height="22" fill="#F2EDEC"/>
+        </pattern>
+
+        <!-- Sky gradients -->
+        <linearGradient id="sky-s" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%"   stop-color="#3080c0"/>
+          <stop offset="100%" stop-color="#87ceeb"/>
+        </linearGradient>
+        <linearGradient id="sky-r" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%"   stop-color="#3a4e62"/>
+          <stop offset="100%" stop-color="#6a8598"/>
+        </linearGradient>
+        <linearGradient id="sky-w" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%"   stop-color="#9db6ca"/>
+          <stop offset="100%" stop-color="#ccdde8"/>
+        </linearGradient>
+
+        <!-- Grass gradient -->
+        <linearGradient id="grass" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%"   stop-color="#5caa3e"/>
+          <stop offset="100%" stop-color="#3d7a28"/>
+        </linearGradient>
+      </defs>
+
+      <!-- ══════════════ SKY BACKGROUNDS ══════════════ -->
+      <rect class="sky-el summer" x="0" y="0" width="800" height="510" fill="url(#sky-s)"/>
+      <rect class="sky-el rain"   x="0" y="0" width="800" height="510" fill="url(#sky-r)"/>
+      <rect class="sky-el winter" x="0" y="0" width="800" height="510" fill="url(#sky-w)"/>
+
+      <!-- ══════════════ SUMMER: sun + clouds ══════════════ -->
+      <g class="sky-el summer">
+        <!-- Glow -->
+        <circle cx="92" cy="80" r="62" fill="#FFE87A" opacity="0.28"/>
+        <!-- Sun -->
+        <circle cx="92" cy="80" r="42" fill="#FFD700"/>
+        <!-- Rays -->
+        <g stroke="#FFD700" stroke-width="4" stroke-linecap="round" opacity="0.72">
+          <line x1="92" y1="22"  x2="92" y2="5"/>
+          <line x1="92" y1="138" x2="92" y2="155"/>
+          <line x1="34" y1="80"  x2="17" y2="80"/>
+          <line x1="150" y1="80" x2="167" y2="80"/>
+          <line x1="52.2" y1="40.2" x2="40.2" y2="28.2"/>
+          <line x1="131.8" y1="119.8" x2="143.8" y2="131.8"/>
+          <line x1="131.8" y1="40.2"  x2="143.8" y2="28.2"/>
+          <line x1="52.2"  y1="119.8" x2="40.2"  y2="131.8"/>
+        </g>
+        <!-- Cloud 1 -->
+        <g fill="white">
+          <circle cx="266" cy="73" r="30" opacity="0.9"/>
+          <circle cx="296" cy="61" r="40" opacity="0.92"/>
+          <circle cx="334" cy="70" r="30" opacity="0.9"/>
+          <rect   x="266"  y="68" width="98" height="34" opacity="0.92"/>
+        </g>
+        <!-- Cloud 2 -->
+        <g fill="white">
+          <circle cx="512" cy="56" r="24" opacity="0.82"/>
+          <circle cx="538" cy="46" r="32" opacity="0.85"/>
+          <circle cx="568" cy="54" r="22" opacity="0.82"/>
+          <rect   x="512"  y="51" width="78" height="28" opacity="0.85"/>
+        </g>
+      </g>
+
+      <!-- ══════════════ RAIN: dark clouds + animated drops ══════════════ -->
+      <g class="sky-el rain">
+        <!-- Cloud 1 -->
+        <g fill="#505e6e">
+          <circle cx="155" cy="62" r="48"/>
+          <circle cx="108" cy="72" r="42"/>
+          <circle cx="204" cy="70" r="40"/>
+          <rect   x="108"  y="60" width="136" height="48"/>
+        </g>
+        <!-- Cloud 2 -->
+        <g fill="#586878">
+          <circle cx="432" cy="50" r="42"/>
+          <circle cx="392" cy="58" r="36"/>
+          <circle cx="470" cy="56" r="36"/>
+          <rect   x="392"  y="48" width="120" height="40"/>
+        </g>
+        <!-- Animated rain – layer 1 -->
+        <g class="rain-a" stroke="#90bcd8" stroke-width="1.8" opacity="0.72" stroke-linecap="round">
+          <line x1="72"  y1="115" x2="65"  y2="165"/>
+          <line x1="138" y1="120" x2="131" y2="170"/>
+          <line x1="204" y1="112" x2="197" y2="162"/>
+          <line x1="270" y1="118" x2="263" y2="168"/>
+          <line x1="336" y1="110" x2="329" y2="160"/>
+          <line x1="402" y1="116" x2="395" y2="166"/>
+          <line x1="468" y1="108" x2="461" y2="158"/>
+          <line x1="534" y1="114" x2="527" y2="164"/>
+          <line x1="600" y1="110" x2="593" y2="160"/>
+          <line x1="666" y1="118" x2="659" y2="168"/>
+        </g>
+        <!-- Animated rain – layer 2 (offset) -->
+        <g class="rain-b" stroke="#90bcd8" stroke-width="1.8" opacity="0.72" stroke-linecap="round">
+          <line x1="105" y1="115" x2="98"  y2="165"/>
+          <line x1="171" y1="110" x2="164" y2="160"/>
+          <line x1="237" y1="118" x2="230" y2="168"/>
+          <line x1="303" y1="112" x2="296" y2="162"/>
+          <line x1="369" y1="118" x2="362" y2="168"/>
+          <line x1="435" y1="110" x2="428" y2="160"/>
+          <line x1="501" y1="116" x2="494" y2="166"/>
+          <line x1="567" y1="108" x2="560" y2="158"/>
+          <line x1="633" y1="114" x2="626" y2="164"/>
+          <line x1="699" y1="112" x2="692" y2="162"/>
+        </g>
+        <!-- Animated rain – layer 3 -->
+        <g class="rain-c" stroke="#90bcd8" stroke-width="1.8" opacity="0.65" stroke-linecap="round">
+          <line x1="88"  y1="115" x2="81"  y2="165"/>
+          <line x1="154" y1="118" x2="147" y2="168"/>
+          <line x1="220" y1="112" x2="213" y2="162"/>
+          <line x1="286" y1="116" x2="279" y2="166"/>
+          <line x1="352" y1="110" x2="345" y2="160"/>
+          <line x1="418" y1="118" x2="411" y2="168"/>
+          <line x1="484" y1="114" x2="477" y2="164"/>
+          <line x1="550" y1="110" x2="543" y2="160"/>
+          <line x1="616" y1="116" x2="609" y2="166"/>
+          <line x1="682" y1="112" x2="675" y2="162"/>
+        </g>
+      </g>
+
+      <!-- ══════════════ WINTER: grey clouds + animated snowflakes ══════════════ -->
+      <g class="sky-el winter">
+        <!-- Cloud 1 -->
+        <g fill="#c0d0de" opacity="0.9">
+          <circle cx="200" cy="68" r="55"/>
+          <circle cx="152" cy="78" r="46"/>
+          <circle cx="252" cy="76" r="48"/>
+          <rect   x="152"  y="64" width="152" height="56"/>
+        </g>
+        <!-- Cloud 2 -->
+        <g fill="#c8d8e4" opacity="0.85">
+          <circle cx="504" cy="55" r="46"/>
+          <circle cx="460" cy="64" r="38"/>
+          <circle cx="546" cy="62" r="38"/>
+          <rect   x="460"  y="52" width="128" height="46"/>
+        </g>
+        <!-- Snowflakes batch 1 -->
+        <g class="snow-a" font-size="18" fill="#b8d2e6" text-anchor="middle">
+          <text x="75"  y="128">❄</text>
+          <text x="178" y="118">❄</text>
+          <text x="282" y="132">❄</text>
+          <text x="386" y="122">❄</text>
+          <text x="490" y="130">❄</text>
+          <text x="594" y="120">❄</text>
+          <text x="698" y="126">❄</text>
+        </g>
+        <!-- Snowflakes batch 2 (offset) -->
+        <g class="snow-b" font-size="14" fill="#cce0ee" text-anchor="middle">
+          <text x="128" y="118">❄</text>
+          <text x="232" y="128">❄</text>
+          <text x="336" y="116">❄</text>
+          <text x="440" y="124">❄</text>
+          <text x="544" y="118">❄</text>
+          <text x="648" y="122">❄</text>
+          <text x="752" y="116">❄</text>
+        </g>
+      </g>
+
+      <!-- ══════════════ GROUND ══════════════ -->
+      <rect x="0" y="416" width="800" height="94" fill="url(#grass)"/>
+      <!-- Grass bumps -->
+      <ellipse cx="55"  cy="415" rx="58" ry="14" fill="#68b84a" opacity="0.55"/>
+      <ellipse cx="205" cy="414" rx="76" ry="12" fill="#60b040" opacity="0.5"/>
+      <ellipse cx="375" cy="413" rx="68" ry="12" fill="#64b244" opacity="0.5"/>
+      <ellipse cx="548" cy="415" rx="60" ry="13" fill="#62ac3e" opacity="0.55"/>
+      <ellipse cx="730" cy="414" rx="64" ry="13" fill="#60ae3c" opacity="0.5"/>
+
+      <!-- Snow on ground (winter only) -->
+      <g class="sky-el winter">
+        <rect x="0" y="416" width="800" height="94" fill="white" opacity="0.42"/>
+        <ellipse cx="55"  cy="415" rx="58" ry="14" fill="white" opacity="0.45"/>
+        <ellipse cx="205" cy="414" rx="76" ry="12" fill="white" opacity="0.45"/>
+        <ellipse cx="548" cy="415" rx="60" ry="13" fill="white" opacity="0.45"/>
+        <ellipse cx="730" cy="414" rx="64" ry="13" fill="white" opacity="0.45"/>
+      </g>
+
+      <!-- ══════════════ TREE ══════════════ -->
+
+      <!-- TREE – Summer (lush green) -->
+      <g class="sky-el summer">
+        <!-- Trunk -->
+        <rect x="617" y="298" width="46" height="128" rx="12" fill="#8B5E3C"/>
+        <line x1="630" y1="312" x2="627" y2="416" stroke="#7a5030" stroke-width="2"/>
+        <line x1="648" y1="308" x2="651" y2="412" stroke="#9a6840" stroke-width="1.5"/>
+        <!-- Canopy -->
+        <circle cx="632" cy="218" r="104" fill="#2a8019"/>
+        <circle cx="684" cy="184" r="84"  fill="#3a9427"/>
+        <circle cx="580" cy="206" r="82"  fill="#2a8019"/>
+        <circle cx="636" cy="160" r="76"  fill="#4aad30"/>
+        <circle cx="688" cy="238" r="70"  fill="#308520"/>
+        <!-- Highlight patches -->
+        <circle cx="613" cy="178" r="40"  fill="#58b838" opacity="0.48"/>
+        <circle cx="658" cy="198" r="32"  fill="#4eaa28" opacity="0.42"/>
+      </g>
+
+      <!-- TREE – Rain (darker foliage) -->
+      <g class="sky-el rain">
+        <rect x="617" y="298" width="46" height="128" rx="12" fill="#7a5030"/>
+        <line x1="630" y1="312" x2="627" y2="416" stroke="#6a4020" stroke-width="2"/>
+        <circle cx="632" cy="218" r="104" fill="#1a6610"/>
+        <circle cx="684" cy="184" r="84"  fill="#237018"/>
+        <circle cx="580" cy="206" r="82"  fill="#1a6610"/>
+        <circle cx="636" cy="160" r="76"  fill="#227015"/>
+        <circle cx="688" cy="238" r="70"  fill="#1a6610"/>
+      </g>
+
+      <!-- TREE – Winter (bare branches + snow) -->
+      <g class="sky-el winter">
+        <rect x="617" y="298" width="46" height="128" rx="12" fill="#6b4423"/>
+        <!-- Main branches -->
+        <line x1="640" y1="298" x2="618" y2="238" stroke="#6b4423" stroke-width="12" stroke-linecap="round"/>
+        <line x1="640" y1="298" x2="665" y2="232" stroke="#6b4423" stroke-width="11" stroke-linecap="round"/>
+        <!-- Sub-branches left -->
+        <line x1="618" y1="238" x2="594" y2="194" stroke="#6b4423" stroke-width="7" stroke-linecap="round"/>
+        <line x1="618" y1="238" x2="638" y2="192" stroke="#6b4423" stroke-width="6" stroke-linecap="round"/>
+        <line x1="618" y1="238" x2="606" y2="222" stroke="#6b4423" stroke-width="5" stroke-linecap="round"/>
+        <!-- Sub-branches right -->
+        <line x1="665" y1="232" x2="690" y2="190" stroke="#6b4423" stroke-width="7" stroke-linecap="round"/>
+        <line x1="665" y1="232" x2="648" y2="187" stroke="#6b4423" stroke-width="6" stroke-linecap="round"/>
+        <line x1="665" y1="232" x2="678" y2="216" stroke="#6b4423" stroke-width="5" stroke-linecap="round"/>
+        <!-- Snow caps -->
+        <ellipse cx="594" cy="192" rx="22" ry="8"  fill="white" opacity="0.88"/>
+        <ellipse cx="638" cy="190" rx="20" ry="7"  fill="white" opacity="0.88"/>
+        <ellipse cx="648" cy="185" rx="18" ry="7"  fill="white" opacity="0.88"/>
+        <ellipse cx="690" cy="188" rx="22" ry="8"  fill="white" opacity="0.88"/>
+        <ellipse cx="678" cy="214" rx="16" ry="6"  fill="white" opacity="0.85"/>
+        <ellipse cx="606" cy="220" rx="16" ry="6"  fill="white" opacity="0.85"/>
+        <ellipse cx="640" cy="298" rx="30" ry="9"  fill="white" opacity="0.8"/>
+      </g>
+
+      <!-- ══════════════ PICNIC BLANKET ══════════════ -->
+      <!-- Trapezoid perspective: wider at front (bottom), narrower at back (top) -->
+      <polygon points="68,386 612,386 634,456 46,456" fill="url(#checker)"/>
+      <polygon points="68,386 612,386 634,456 46,456" fill="none"
+               stroke="#B82020" stroke-width="4" stroke-linejoin="round"/>
+      <!-- Fringe -->
+      <g stroke="#B82020" stroke-width="2.5" opacity="0.6">
+        <line x1="68"  y1="386" x2="60"  y2="374"/>
+        <line x1="112" y1="386" x2="108" y2="374"/>
+        <line x1="156" y1="386" x2="154" y2="374"/>
+        <line x1="200" y1="386" x2="200" y2="374"/>
+        <line x1="244" y1="386" x2="246" y2="374"/>
+        <line x1="288" y1="386" x2="292" y2="374"/>
+        <line x1="332" y1="386" x2="336" y2="374"/>
+        <line x1="376" y1="386" x2="382" y2="374"/>
+        <line x1="420" y1="386" x2="428" y2="374"/>
+        <line x1="464" y1="386" x2="472" y2="374"/>
+        <line x1="508" y1="386" x2="518" y2="374"/>
+        <line x1="552" y1="386" x2="562" y2="374"/>
+        <line x1="596" y1="386" x2="608" y2="374"/>
+        <line x1="612" y1="386" x2="626" y2="374"/>
+      </g>
+
+      <!-- ══════════════ PICNIC BASKET ══════════════ -->
+      <g transform="translate(305, 372)">
+        <!-- Basket body -->
+        <rect x="0" y="0" width="74" height="52" rx="8" fill="#c49a3c"/>
+        <!-- Weave lines -->
+        <line x1="0" y1="17" x2="74" y2="17" stroke="#a07828" stroke-width="3"/>
+        <line x1="0" y1="34" x2="74" y2="34" stroke="#a07828" stroke-width="3"/>
+        <g stroke="#b88c30" stroke-width="1.5" opacity="0.6">
+          <line x1="12" y1="0"  x2="12" y2="52"/>
+          <line x1="24" y1="0"  x2="24" y2="52"/>
+          <line x1="36" y1="0"  x2="36" y2="52"/>
+          <line x1="48" y1="0"  x2="48" y2="52"/>
+          <line x1="60" y1="0"  x2="60" y2="52"/>
+        </g>
+        <!-- Lid -->
+        <ellipse cx="37" cy="0" rx="37" ry="12" fill="#d4a840"/>
+        <!-- Handle -->
+        <path d="M10,-8 Q37,-35 64,-8" fill="none" stroke="#8b6520"
+              stroke-width="5" stroke-linecap="round"/>
+        <!-- Peeking food -->
+        <ellipse cx="18" cy="-2" rx="9" ry="8" fill="#f0e8d0"/>
+        <ellipse cx="56" cy="-2" rx="9" ry="8" fill="#e8d8b8"/>
+        <!-- Apple -->
+        <circle cx="37" cy="-5" r="7" fill="#d83030"/>
+        <line   x1="37" y1="-12" x2="37" y2="-8" stroke="#5a8a20" stroke-width="2" stroke-linecap="round"/>
+      </g>
+
+      <!-- ══════════════ CUPS / FOOD ══════════════ -->
+      <g transform="translate(258, 400)">
+        <!-- Left cup -->
+        <rect x="0" y="0" width="22" height="20" rx="3" fill="#e8c060"/>
+        <rect x="0" y="0" width="22" height="6"  rx="3" fill="#f0d080"/>
+        <rect x="22" y="5" width="7"  height="10" rx="3" fill="#e8c060"/>
+      </g>
+      <g transform="translate(398, 400)">
+        <!-- Right cup -->
+        <rect x="0" y="0" width="22" height="20" rx="3" fill="#60a8d8"/>
+        <rect x="0" y="0" width="22" height="6"  rx="3" fill="#80c0e8"/>
+        <rect x="-7" y="5" width="7"  height="10" rx="3" fill="#60a8d8"/>
+      </g>
+
+      <!-- ══════════════ RABBIT (Hase) ══════════════ -->
+      <!-- Translate so (0,0) = centre of feet, character grows upward (negative y) -->
+      <g transform="translate(200, 422)">
+        <!-- BODY (base layer) -->
+        <ellipse cx="0"   cy="-58"  rx="34"  ry="54"  fill="#F0EDE0"/>
+
+        <!-- EARS (behind head) -->
+        <ellipse cx="-14" cy="-182" rx="13"  ry="40"  fill="#F0EDE0"/>
+        <ellipse cx=" 14" cy="-182" rx="13"  ry="40"  fill="#F0EDE0"/>
+        <!-- Inner ears -->
+        <ellipse cx="-14" cy="-182" rx="7"   ry="30"  fill="#F0C0C0"/>
+        <ellipse cx=" 14" cy="-182" rx="7"   ry="30"  fill="#F0C0C0"/>
+
+        <!-- HEAD -->
+        <circle  cx="0"   cy="-128" r="36"   fill="#F0EDE0"/>
+
+        <!-- Eyes -->
+        <circle  cx="-13" cy="-133" r="5.5"  fill="#2a2020"/>
+        <circle  cx=" 13" cy="-133" r="5.5"  fill="#2a2020"/>
+        <!-- Eye shine -->
+        <circle  cx="-11" cy="-135" r="2"    fill="white"/>
+        <circle  cx=" 15" cy="-135" r="2"    fill="white"/>
+
+        <!-- Nose -->
+        <ellipse cx="0"   cy="-120" rx="6"   ry="5"   fill="#E87878"/>
+        <!-- Mouth -->
+        <path d="M-6,-115 Q0,-109 6,-115"
+              fill="none" stroke="#C85050" stroke-width="1.8" stroke-linecap="round"/>
+
+        <!-- Paws -->
+        <ellipse cx="-24" cy="-6"   rx="15"  ry="8"   fill="#F0EDE0"/>
+        <ellipse cx=" 24" cy="-6"   rx="15"  ry="8"   fill="#F0EDE0"/>
+
+        <!-- ── Rabbit SUMMER outfit ── -->
+        <g class="fit-summer">
+          <!-- Straw hat brim -->
+          <ellipse cx="0"   cy="-162" rx="44"  ry="11"  fill="#D4A840"/>
+          <!-- Hat crown -->
+          <ellipse cx="0"   cy="-174" rx="26"  ry="20"  fill="#C49830"/>
+          <!-- Hat band -->
+          <rect    x="-26"  y="-182"  width="52" height="9" rx="3" fill="#E84040"/>
+          <!-- Neckerchief -->
+          <path d="M-17,-98 Q0,-84 17,-98 L9,-72 Q0,-66 -9,-72 Z"
+                fill="#E84040" opacity="0.92"/>
+        </g>
+
+        <!-- ── Rabbit WINTER outfit ── -->
+        <g class="fit-winter">
+          <!-- Beanie brim -->
+          <ellipse cx="0"   cy="-160" rx="32"  ry="12"  fill="#4060C0"/>
+          <!-- Beanie dome -->
+          <ellipse cx="0"   cy="-172" rx="29"  ry="21"  fill="#4060C0"/>
+          <!-- Pompom -->
+          <circle  cx="0"   cy="-191" r="10"   fill="#C0D0F0"/>
+          <!-- Scarf -->
+          <path d="M-26,-96 Q0,-86 26,-96"
+                fill="none" stroke="#E87020" stroke-width="13" stroke-linecap="round"/>
+          <path d="M18,-96 Q24,-82 28,-66"
+                fill="none" stroke="#E87020" stroke-width="8" stroke-linecap="round"/>
+          <!-- Mittens -->
+          <ellipse cx="-32" cy="-6"   rx="17"  ry="11"  fill="#4060C0"/>
+          <ellipse cx=" 32" cy="-6"   rx="17"  ry="11"  fill="#4060C0"/>
+        </g>
+
+        <!-- ── Rabbit RAIN outfit ── -->
+        <g class="fit-rain">
+          <!-- Yellow raincoat body overlay -->
+          <ellipse cx="0"   cy="-60"  rx="38"  ry="57"  fill="#F5C800" opacity="0.88"/>
+          <!-- Collar / lapels -->
+          <path d="M-16,-80 L-8,-58 L0,-64 L8,-58 L16,-80"
+                fill="#E0B000" opacity="0.9"/>
+          <!-- Sou'wester hat brim -->
+          <ellipse cx="0"   cy="-162" rx="44"  ry="11"  fill="#F5C800"/>
+          <!-- Sou'wester back flap -->
+          <ellipse cx="10"  cy="-162" rx="18"  ry="8"   fill="#E5B800"/>
+          <!-- Sou'wester crown -->
+          <ellipse cx="0"   cy="-174" rx="27"  ry="20"  fill="#F5C800"/>
+          <!-- Umbrella handle -->
+          <line x1="34"  y1="-52"  x2="62"  y2="-116"
+                stroke="#884488" stroke-width="4.5" stroke-linecap="round"/>
+          <!-- Umbrella canopy (purple) -->
+          <path d="M18,-120 Q62,-162 106,-120 Q88,-115 62,-117 Q36,-115 18,-120 Z"
+                fill="#AA44AA"/>
+          <path d="M18,-120 Q62,-162 106,-120"
+                fill="none" stroke="#884488" stroke-width="2"/>
+        </g>
+      </g><!-- end rabbit -->
+
+      <!-- ══════════════ MOUSE (Maus) ══════════════ -->
+      <g transform="translate(432, 424)">
+        <!-- Tail -->
+        <path d="M22,-28 Q68,-18 74,16 Q78,38 58,42"
+              fill="none" stroke="#9A8A78" stroke-width="4" stroke-linecap="round"/>
+
+        <!-- BODY -->
+        <ellipse cx="0"   cy="-52"  rx="29"  ry="46"  fill="#B0A090"/>
+
+        <!-- EARS (behind head) -->
+        <circle  cx="-22" cy="-132" r="21"   fill="#B0A090"/>
+        <circle  cx=" 22" cy="-132" r="21"   fill="#B0A090"/>
+        <!-- Inner ears -->
+        <circle  cx="-22" cy="-132" r="13"   fill="#EEB8B8"/>
+        <circle  cx=" 22" cy="-132" r="13"   fill="#EEB8B8"/>
+
+        <!-- HEAD -->
+        <circle  cx="0"   cy="-106" r="33"   fill="#B0A090"/>
+
+        <!-- Eyes -->
+        <circle  cx="-12" cy="-112" r="5"    fill="#2a1e1e"/>
+        <circle  cx=" 12" cy="-112" r="5"    fill="#2a1e1e"/>
+        <!-- Eye shine -->
+        <circle  cx="-10" cy="-114" r="1.8"  fill="white"/>
+        <circle  cx=" 14" cy="-114" r="1.8"  fill="white"/>
+
+        <!-- Nose -->
+        <ellipse cx="0"   cy="-102" rx="5"   ry="4"   fill="#E87878"/>
+        <!-- Mouth -->
+        <path d="M-5,-97 Q0,-93 5,-97"
+              fill="none" stroke="#C85050" stroke-width="1.8" stroke-linecap="round"/>
+        <!-- Whiskers -->
+        <line x1="-30" y1="-102" x2="-6"  y2="-101" stroke="#666" stroke-width="1.2"/>
+        <line x1="-30" y1="-99"  x2="-6"  y2="-99"  stroke="#666" stroke-width="1.2"/>
+        <line x1="6"   y1="-101" x2="30"  y2="-102" stroke="#666" stroke-width="1.2"/>
+        <line x1="6"   y1="-99"  x2="30"  y2="-99"  stroke="#666" stroke-width="1.2"/>
+
+        <!-- Paws -->
+        <ellipse cx="-20" cy="-6"   rx="13"  ry="7"   fill="#B0A090"/>
+        <ellipse cx=" 20" cy="-6"   rx="13"  ry="7"   fill="#B0A090"/>
+
+        <!-- ── Mouse SUMMER outfit ── -->
+        <g class="fit-summer">
+          <!-- Flower crown -->
+          <circle cx="-22" cy="-128" r="7"   fill="#E84070"/>
+          <circle cx="-22" cy="-128" r="3"   fill="#FFE060"/>
+          <circle cx="-8"  cy="-140" r="7"   fill="#FF8030"/>
+          <circle cx="-8"  cy="-140" r="3"   fill="#FFE060"/>
+          <circle cx=" 8"  cy="-142" r="7"   fill="#E84070"/>
+          <circle cx=" 8"  cy="-142" r="3"   fill="#FFE060"/>
+          <circle cx=" 22" cy="-130" r="7"   fill="#FF8030"/>
+          <circle cx=" 22" cy="-130" r="3"   fill="#FFE060"/>
+          <!-- Light-blue dress -->
+          <path d="M-22,-78 Q-28,-54 -30,-14 Q0,-4 30,-14 Q28,-54 22,-78 Z"
+                fill="#60A8D8" opacity="0.72"/>
+        </g>
+
+        <!-- ── Mouse WINTER outfit ── -->
+        <g class="fit-winter">
+          <!-- Beanie brim -->
+          <ellipse cx="0"   cy="-130" rx="28"  ry="11"  fill="#7050A8"/>
+          <!-- Beanie dome -->
+          <ellipse cx="0"   cy="-141" rx="26"  ry="19"  fill="#7050A8"/>
+          <!-- Pompom -->
+          <circle  cx="0"   cy="-159" r="9"    fill="#E8D8F8"/>
+          <!-- Scarf -->
+          <path d="M-24,-80 Q0,-70 24,-80"
+                fill="none" stroke="#3A8A3A" stroke-width="12" stroke-linecap="round"/>
+          <path d="M-14,-80 Q-18,-66 -22,-52"
+                fill="none" stroke="#3A8A3A" stroke-width="8"  stroke-linecap="round"/>
+          <!-- Mittens -->
+          <ellipse cx="-28" cy="-6"   rx="16"  ry="10"  fill="#7050A8"/>
+          <ellipse cx=" 28" cy="-6"   rx="16"  ry="10"  fill="#7050A8"/>
+        </g>
+
+        <!-- ── Mouse RAIN outfit ── -->
+        <g class="fit-rain">
+          <!-- Red raincoat body -->
+          <ellipse cx="0"   cy="-54"  rx="32"  ry="49"  fill="#E03030" opacity="0.88"/>
+          <!-- Lapels -->
+          <path d="M-15,-74 L-8,-54 L0,-60 L8,-54 L15,-74"
+                fill="#C02020" opacity="0.9"/>
+          <!-- Red rain hood -->
+          <path d="M-29,-110 Q-32,-138 -20,-142 Q0,-150 20,-142 Q32,-138 29,-110"
+                fill="#E03030"/>
+          <!-- Umbrella handle (left side) -->
+          <line x1="-34" y1="-52"  x2="-62"  y2="-116"
+                stroke="#224488" stroke-width="4.5" stroke-linecap="round"/>
+          <!-- Umbrella canopy (blue) -->
+          <path d="M-18,-120 Q-62,-162 -106,-120 Q-88,-115 -62,-117 Q-36,-115 -18,-120 Z"
+                fill="#3366CC"/>
+          <path d="M-18,-120 Q-62,-162 -106,-120"
+                fill="none" stroke="#224488" stroke-width="2"/>
+        </g>
+      </g><!-- end mouse -->
+
+      <!-- ══════════════ SUMMER EXTRAS: flowers & butterfly ══════════════ -->
+      <g class="sky-el summer">
+        <!-- Flower left -->
+        <circle cx="108" cy="416" r="6"  fill="#FFD700"/>
+        <circle cx="100" cy="410" r="5"  fill="#E88030"/>
+        <circle cx="116" cy="410" r="5"  fill="#E88030"/>
+        <circle cx="100" cy="422" r="5"  fill="#E88030"/>
+        <circle cx="116" cy="422" r="5"  fill="#E88030"/>
+        <line   x1="108" y1="422" x2="108" y2="434" stroke="#4a8820" stroke-width="2"/>
+        <!-- Flower right -->
+        <circle cx="558" cy="414" r="6"  fill="#FFD700"/>
+        <circle cx="550" cy="408" r="5"  fill="#E84070"/>
+        <circle cx="566" cy="408" r="5"  fill="#E84070"/>
+        <circle cx="550" cy="420" r="5"  fill="#E84070"/>
+        <circle cx="566" cy="420" r="5"  fill="#E84070"/>
+        <line   x1="558" y1="420" x2="558" y2="432" stroke="#4a8820" stroke-width="2"/>
+        <!-- Butterfly -->
+        <path d="M166,344 Q176,333 186,344 Q176,354 166,344 Z" fill="#E84070" opacity="0.8"/>
+        <path d="M166,344 Q156,333 150,342 Q157,351 166,344 Z" fill="#FF8030" opacity="0.8"/>
+      </g>
+
+    </svg>
+  </div><!-- end scene-wrap -->
+
+  <!-- ══════════════ SPEECH BUBBLES ══════════════ -->
+  <div class="greetings">
+    <div class="bubble rabbit-says">
+      🐰 „Einen wundervollen Tag wünsche ich dir, liebe Maus!"
+    </div>
+    <div class="bubble mouse-says">
+      🐭 „Dir auch einen wundervollen Tag, lieber Hase!"
+    </div>
+  </div>
+
+  <script>
+    /* ── WMO weather-code → emoji + German description ── */
+    const WMO = {
+       0: {e:'☀️',  d:'Strahlend sonnig'},
+       1: {e:'🌤️', d:'Überwiegend klar'},
+       2: {e:'⛅',  d:'Teilweise bewölkt'},
+       3: {e:'☁️',  d:'Bedeckt'},
+      45: {e:'🌫️', d:'Nebelig'},
+      48: {e:'🌫️', d:'Reifnebel'},
+      51: {e:'🌦️', d:'Leichter Nieselregen'},
+      53: {e:'🌦️', d:'Nieselregen'},
+      55: {e:'🌧️', d:'Starker Nieselregen'},
+      61: {e:'🌧️', d:'Leichter Regen'},
+      63: {e:'🌧️', d:'Regen'},
+      65: {e:'🌧️', d:'Starker Regen'},
+      71: {e:'❄️',  d:'Leichter Schneefall'},
+      73: {e:'❄️',  d:'Schneefall'},
+      75: {e:'❄️',  d:'Starker Schneefall'},
+      77: {e:'🌨️', d:'Schneekörner'},
+      80: {e:'🌦️', d:'Leichte Regenschauer'},
+      81: {e:'🌧️', d:'Regenschauer'},
+      82: {e:'⛈️',  d:'Starke Regenschauer'},
+      85: {e:'🌨️', d:'Leichte Schneeschauer'},
+      86: {e:'🌨️', d:'Starke Schneeschauer'},
+      95: {e:'⛈️',  d:'Gewitter'},
+      96: {e:'⛈️',  d:'Gewitter mit Hagel'},
+      99: {e:'⛈️',  d:'Schweres Gewitter'}
+    };
+
+    function wmoInfo(code) {
+      if (WMO[code]) return WMO[code];
+      /* fall back to nearest lower code */
+      const keys = Object.keys(WMO).map(Number).sort((a, b) => a - b);
+      for (let i = keys.length - 1; i >= 0; i--) {
+        if (keys[i] <= code) return WMO[keys[i]];
+      }
+      return {e:'🌤️', d:'Wetter unbekannt'};
+    }
+
+    function weatherType(code, temp) {
+      /* Snow */
+      if ((code >= 71 && code <= 77) || code === 85 || code === 86) return 'winter';
+      /* Rain */
+      if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95) return 'rain';
+      /* Cold but no precipitation */
+      if (temp < 8) return 'winter';
+      return 'summer';
+    }
+
+    function applyWeather(temp, code) {
+      const type = weatherType(code, temp);
+      const info = wmoInfo(code);
+
+      document.body.className = 'weather-' + type;
+      document.getElementById('wc-icon').textContent = info.e;
+      document.getElementById('wc-temp').textContent = temp + ' °C';
+      document.getElementById('wc-desc').textContent = 'Berlin · ' + info.d;
+    }
+
+    async function loadWeather() {
+      try {
+        const url =
+          'https://api.open-meteo.com/v1/forecast' +
+          '?latitude=52.52&longitude=13.41' +
+          '&current=temperature_2m,weathercode' +
+          '&timezone=Europe%2FBerlin';
+        const res  = await fetch(url);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        const temp = Math.round(data.current.temperature_2m);
+        const code = data.current.weathercode;
+        applyWeather(temp, code);
+      } catch (err) {
+        console.warn('Wetterdaten nicht verfügbar:', err.message);
+        /* Seasonal fallback based on current month (getMonth: 0=Jan … 11=Dec) */
+        const m = new Date().getMonth();
+        let fbCode = 1, fbTemp = 18;
+        if (m === 11 || m <= 1)    { fbCode = 73; fbTemp = -2; }   /* Dec–Feb  → winter */
+        else if (m >= 3 && m <= 9) { fbCode = 1;  fbTemp = 22; }   /* Apr–Oct  → summer */
+        else                       { fbCode = 61; fbTemp = 10; }    /* Mar, Nov → rain   */
+        applyWeather(fbTemp, fbCode);
+        document.getElementById('wc-desc').textContent += ' (Standardwert)';
+      }
+    }
+
+    loadWeather();
+  </script>
+</body>
+</html>
