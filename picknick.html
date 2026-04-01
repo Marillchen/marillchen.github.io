@@ -647,13 +647,8 @@
   </div><!-- end scene-wrap -->
 
   <!-- ══════════════ SPEECH BUBBLES ══════════════ -->
-  <div class="greetings">
-        <div class="bubble mouse-says">
-      🐭 „Einen wundervollen Tag wünsche ich dir, lieber Hase!"
-    </div>
-    <div class="bubble rabbit-says">
-      🐰 „Dir auch einen wundervollen Tag, liebe Maus!"
-    </div>
+  <div class="bubble mouse-says" id="mouse-bubble"></div>
+<div class="bubble rabbit-says" id="rabbit-bubble"></div>
   </div>
 
   <script>
@@ -740,7 +735,27 @@
         document.getElementById('wc-desc').textContent += ' (Standardwert)';
       }
     }
+const mausSpruche = [
+  '🐭 „Heute ist ein wunderschöner Tag, nicht wahr?"',
+  '🐭 „Ich habe extra Erdbeertorte mitgebracht!"',
+  '🐭 „Die Sonne scheint so schön heute!"',
+  '🐭 „Magst du noch ein Sandwich, lieber Hase?"',
+  '🐭 „Schön, dass wir uns treffen!"',
+];
 
+const haseSpruche = [
+  '🐰 „Ich könnte den ganzen Tag hier sitzen bleiben!"',
+  '🐰 „Mmh, das schmeckt köstlich!"',
+  '🐰 „Ein perfekter Tag für ein Picknick!"',
+  '🐰 „Danke, du bist die beste Freundin!"',
+  '🐰 „Ich hab Möhrenkuchen mitgebracht!"',
+];
+
+const tag = new Date().getDate(); // 1–31, wechselt täglich
+const i = tag % mausSpruche.length;
+
+document.getElementById('mouse-bubble').textContent = mausSpruche[i];
+document.getElementById('rabbit-bubble').textContent = haseSpruche[i];
     loadWeather();
   </script>
 </body>
