@@ -650,7 +650,7 @@ const haseSpruche = {
     '🐰 „Danke. Ich dir auch, liebe Maus!"',
     '🐰 „Mmh, das schmeckt köstlich!"',
     '🐰 „Danke, du bist die beste Freundin!"',
-    '🐰 „Ja, das finde ich auch!"'
+    '🐰 „Ja, das finde ich auch!"',
     '🐰 „Auf unsere Freundschaft! 🥂"',
     '🐰 „Ich hab Möhrenkuchen mitgebracht!"',
     '🐰 „So ein wunderschöner Tag!"',
@@ -670,10 +670,12 @@ const haseSpruche = {
     '🐰 „Psst… hörst du die Grillen?"',
   ]
 };
+    const timeMode0 = getTimeOfDay();
+    const spruchListe = timeMode0 === 'night' ? 'night' : timeMode0 === 'evening' ? 'evening' : 'day';
     const tag = new Date().getDate();
-    const i = tag % mausSpruche.length;
-    document.getElementById('mouse-bubble').textContent  = mausSpruche[i];
-    document.getElementById('rabbit-bubble').textContent = haseSpruche[i];
+    const i = tag % mausSpruche[spruchListe].length;
+    document.getElementById('mouse-bubble').textContent  = mausSpruche[spruchListe][i];
+    document.getElementById('rabbit-bubble').textContent = haseSpruche[spruchListe][i];
 
     /* ── Wetter + Tageszeit anwenden ── */
     function applyWeather(temp, code) {
